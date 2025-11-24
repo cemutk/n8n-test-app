@@ -10,39 +10,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Kodları depodan çek
     - uses: actions/checkout@v3
 
-    # 2. Java Kurulumu (Android için şart)
     - name: Set up Java
       uses: actions/setup-java@v3
       with:
         distribution: 'zulu'
         java-version: '17'
 
-    # 3. Flutter Kurulumu
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.19.0'
 
-    # 4. Proje İskeletini Oluştur ve Kodu Enjekte Et
-    # Burası çok kritik: Senin sadece main.dart dosyan var, proje yok.
-    # O yüzden önce projeyi yaratıp sonra senin kodunu içine koyuyoruz.
     - name: Create Project & Inject AI Code
       run: |
-        mv lib/main_v2.dart temp_code.dart
+        # Eger main_v2.dart varsa onu kullan, yoksa main.dart
+        if [ -f lib/main_v2.dart ]; then
+          mv lib/main_v2.dart temp_code.dart
+        else
+          mv lib/main.dart temp_code.dart
+        fi
+        
         rm -rf lib
         rm -rf test
         flutter create . --org com.ai.app --project-name aiapp
+        
+        # Kod dosyasini yerine koy
         mv temp_code.dart lib/main.dart
+        
+        # Gerekli paketleri ekle (Material zaten var ama garanti olsun)
         flutter pub get
 
-    # 5. Uygulamayı Derle (APK Üret)
     - name: Build APK
       run: flutter build apk --release --no-tree-shake-icons
 
-    # 6. Sonucu Bize Ver (Artifact Upload)
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
