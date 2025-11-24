@@ -1,0 +1,51 @@
+name: Build Android App
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.0'
+
+    - name: Create Project & Inject AI Code
+      run: |
+        if [ -f lib/main_v2.dart ]; then
+          mv lib/main_v2.dart temp_code.dart
+        elif [ -f lib/main.dart ]; then
+           mv lib/main.dart temp_code.dart
+        else
+           echo "HATA: Kod dosyasi bulunamadi!"
+           exit 1
+        fi
+        
+        rm -rf lib
+        rm -rf test
+        flutter create . --org com.ai.app --project-name aiapp
+        
+        mv temp_code.dart lib/main.dart
+        flutter pub get
+
+    - name: Build APK
+      run: flutter build apk --release --no-tree-shake-icons
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: my-ai-app
+        path: build/app/outputs/flutter-apk/app-release.apk
